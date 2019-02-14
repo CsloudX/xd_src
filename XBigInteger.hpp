@@ -40,6 +40,8 @@ public:
 		}
 	}
 
+	int base()const { return m_base; }
+
 	int toInt()const
 	{
 		int ret = 0;
@@ -54,7 +56,7 @@ public:
 	std::string toString()const
 	{
 		std::string ret;
-		int count = m_data.size();
+		int count = (XMath::max)(size(),1);
 		ret.resize(count);
 		for (int i = 0; i < count; ++i)
 		{
@@ -115,12 +117,18 @@ public:
 	{
 		assert(m_base == divisor.m_base && divisor!=XBigIntegerS(0,m_base));
 
+		XBigIntegerS base(m_base, m_base);
 		XBigIntegerS ret(0, m_base);
-		XBigIntegerS m = *this;
-		while (m >= divisor)
+		XBigIntegerS m(0,m_base);
+
+		for (int i = size(); i >= 0; --i) 
 		{
-			m = m - divisor;
-			ret = ret + XBigIntegerS(1,m_base);
+			ret = ret * base;
+			m = m*base + XBigIntegerS(bitValue(i),m_base);
+			if (m >= divisor) {
+				ret = ret + m.divideS(divisor, remainder);
+				m = *remainder;
+			}
 		}
 
 		if (remainder) {
@@ -153,7 +161,7 @@ public:
 	friend bool operator == (const XBigIntegerS& a, const XBigIntegerS& b)
 	{
 		assert(a.m_base == b.m_base);
-		int count = (int)(XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (XMath::max)(a.size(), b.size());
 		for (int i = 0; i < count; ++i)
 		{
 			if (a.bitValue(i) != b.bitValue(i))
@@ -164,7 +172,7 @@ public:
 	friend bool operator != (const XBigIntegerS& a, const XBigIntegerS& b)
 	{
 		assert(a.m_base == b.m_base);
-		int count = (int)(XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (XMath::max)(a.size(), b.size());
 		for (int i = 0; i < count; ++i)
 		{
 			if (a.bitValue(i) != b.bitValue(i))
@@ -175,7 +183,7 @@ public:
 	friend bool operator < (const XBigIntegerS& a, const XBigIntegerS& b)
 	{
 		assert(a.m_base == b.m_base);
-		int count = (int)(XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (XMath::max)(a.size(), b.size());
 		for (int i = count; i >=0 ; --i)
 		{
 			if (a.bitValue(i) < b.bitValue(i))
@@ -189,7 +197,7 @@ public:
 	friend bool operator <= (const XBigIntegerS& a, const XBigIntegerS& b)
 	{
 		assert(a.m_base == b.m_base);
-		int count = (int)(XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (XMath::max)(a.size(), b.size());
 		for (int i = count; i >= 0; --i)
 		{
 			if (a.bitValue(i) < b.bitValue(i))
@@ -202,7 +210,7 @@ public:
 	friend bool operator > (const XBigIntegerS& a, const XBigIntegerS& b)
 	{
 		assert(a.m_base == b.m_base);
-		int count = (int)(XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (XMath::max)(a.size(), b.size());
 		for (int i = count; i >= 0; --i)
 		{
 			if (a.bitValue(i) > b.bitValue(i))
@@ -216,7 +224,7 @@ public:
 	friend bool operator >= (const XBigIntegerS& a, const XBigIntegerS& b)
 	{
 		assert(a.m_base == b.m_base);
-		int count = (int)(XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (int)(XMath::max)(a.size(), b.size());
 		for (int i = count; i >= 0; --i)
 		{
 			if (a.bitValue(i) > b.bitValue(i))
@@ -233,7 +241,7 @@ public:
 		assert(a.m_base == b.m_base);
 
 		XBigIntegerS ret(0, a.m_base);
-		int count = (XMath::max)(a.m_data.size(), b.m_data.size());
+		int count = (XMath::max)(a.size(), b.size());
 		for (int i = 0; i < count; i++)
 		{
 			ret.addBitValue(i, a.bitValue(i) + b.bitValue(i));
@@ -246,7 +254,8 @@ public:
 		assert(a.m_base == b.m_base && a >= b);
 
 		XBigIntegerS ret = a;
-		for (int i = 0; i < (int)b.m_data.size(); ++i) {
+		int size = b.size();
+		for (int i = 0; i < size; ++i) {
 			ret.subBitValue(i, b.m_data.at(i));
 		}
 		return ret;
@@ -256,10 +265,12 @@ public:
 		assert(a.m_base == b.m_base);
 
 		XBigIntegerS ret(0, a.m_base);
-		for (int i = 0; i < (int)b.m_data.size(); ++i) {
+		int aSize = a.size();
+		int bSize = b.size();
+		for (int i = 0; i < bSize; ++i) {
 			int k = b.bitValue(i);
 			XBigIntegerS m(0, a.m_base);
-			for (int j = 0; j < (int)a.m_data.size(); ++j){
+			for (int j = 0; j < aSize; ++j){
 				m.addBitValue(i + j, k*a.bitValue(j));
 			}
 			ret = ret+ m;
@@ -268,6 +279,31 @@ public:
 	}
 
 private:
+	XBigIntegerS divideS(const XBigIntegerS& divisor, XBigIntegerS* remainder)const
+	{
+		assert(m_base == divisor.m_base && divisor != XBigIntegerS(0, m_base));
+
+		XBigIntegerS ret(0, m_base);
+		XBigIntegerS m = *this;
+		while (m >= divisor)
+		{
+			m = m - divisor;
+			ret = ret + XBigIntegerS(1, m_base);
+		}
+
+		if (remainder) {
+			*remainder = m;
+		}
+		return ret;
+	}
+	int size()const
+	{
+		for (int i = m_data.size()-1; i >= 0; --i) {
+			if (m_data.at(i) > 0)
+				return i+1;
+		}
+		return 0;
+	}
 
 	static char toChar(int n)
 	{
@@ -308,6 +344,7 @@ public:
 		m_num.init(m_isNegative?str.substr(1):str, base);
 	}
 
+	int base()const { return m_num.base(); }
 	int toInt()const { return m_isNegative ? -m_num.toInt() : m_num.toInt(); }
 	operator int() const { return toInt(); }
 	std::string toString()const { return m_isNegative ? "-" + m_num.toString() : m_num.toString(); }
@@ -346,6 +383,7 @@ public:
 		}
 		return ret;
 	}
+
 	friend XBigInteger operator - (const XBigInteger& a, const XBigInteger& b)
 	{
 		return a + (-b); 

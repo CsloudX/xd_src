@@ -17,49 +17,49 @@ protected:
 
 public:
     XUnitTest():m_passCount(0),m_failCount(0){ 
-        std::wcout.imbue(std::locale(""));
+        //std::wcout.imbue(std::locale(""));
     }
     virtual ~XUnitTest()
 	{
 	}
     void run()
 	{ 
-		static std::wstring line = L"============";
-		std::wcout << line << L" START " << m_id << L" test " << line << L"\n";
+		static std::string line = "============";
+		std::cout << line << " START " << m_id << " TEST " << line << "\n";
 		testEvent();
-		std::wcout<<std::endl <<
+		std::cout<<std::endl <<
 			"TOTAL: "<<m_passCount+m_failCount <<
 			", PASS: "<< m_passCount << 
 			", FAIL: " << m_failCount<< 
 			", TIME: " << m_time.elapsed() << "ms"<<std::endl;
-		std::wcout << line << L"  END  " << m_id << L" test " << line << L"\n";
+		std::cout << line << "  END  " << m_id << " TEST " << line << "\n";
     }
 
-	void setId(const std::wstring& id) { m_id = id; }
-	const std::wstring& id()const { return m_id; }
+	void setId(const std::string& id) { m_id = id; }
+	const std::string& id()const { return m_id; }
 
 protected:
-	void output(const std::wstring& prefix, const std::wstring& msg, int ms)
+	void output(const std::string& prefix, const std::string& msg, int ms)
 	{
-		std::wcout<< prefix << L": " << msg<<" ["<<ms<<L"ms]"<<std::endl;
+		std::cout<< prefix << ": " << msg<<" ["<<ms<<"ms]"<<std::endl;
 	}
-	void verify(bool pass, const std::wstring& msg, int ms)
+	void verify(bool pass, const std::string& msg, int ms)
 	{
 		setPass(pass);
 		output(pass ? PASS : FAIL, msg, ms);
 	}
 	template <typename T>
 	void compare(const T& actual, const T& expected,
-		const std::wstring& actualMsg, const std::wstring& expectedMsg,int ms)
+		const std::string& actualMsg, const std::string& expectedMsg,int ms)
 	{
 		bool pass = (actual == expected);
 		setPass(pass);
 		output(pass ? PASS : FAIL, 
-			actualMsg + std::wstring(pass?L" == ":L" != ") + expectedMsg,
+			actualMsg + std::string(pass?" == ":" != ") + expectedMsg,
 			ms);
 	}
 	void compare(const double actual, const int expected,
-		const std::wstring& actualMsg, const std::wstring& expectedMsg, int ms)
+		const std::string& actualMsg, const std::string& expectedMsg, int ms)
 	{
 		compare(actual, (double)expected, actualMsg, expectedMsg, ms);
 	}
@@ -120,12 +120,12 @@ protected:
 	};
 
 private:
-	std::wstring m_id;
+	std::string m_id;
 	Time m_time;
 	int m_passCount;
 	int m_failCount;
-	const std::wstring PASS = L"PASS";
-	const std::wstring FAIL = L"FAIL"; 
+	const std::string PASS = " PASS";
+	const std::string FAIL = "*FAIL"; 
 
 protected:
 	Time m_tmpTime;
@@ -134,13 +134,13 @@ protected:
 #define X_RUN_TEST(Cls) {		\
 	Cls##Test test;				\
 	if(test.id().empty())		\
-		test.setId(L#Cls);	\
+		test.setId(#Cls);	\
 	test.run();				\
 }
 
-#define X_OUTPUT(op)	m_tmpTime.start(); op;output(L"    ",L#op, m_tmpTime.elapsed());
-#define X_VERIFY(cond)	{Time t;verify(cond,L#cond,t.elapsed());}
+#define X_OUTPUT(op)	m_tmpTime.start(); op;output("    ",#op, m_tmpTime.elapsed());
+#define X_VERIFY(cond)	{Time t;verify(cond,#cond,t.elapsed());}
 #define X_VERIFY2(cond,msg)	{Time t;verify(cond,msg,t.elapsed());}
-#define X_COMPARE(actual, expected)	{Time t;compare(actual,expected,L#actual,L#expected,t.elapsed());}	
+#define X_COMPARE(actual, expected)	{Time t;compare(actual,expected,#actual,#expected,t.elapsed());}	
 
 #endif //_X_UNIT_TEST_HPP
